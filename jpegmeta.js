@@ -449,6 +449,34 @@ this.JpegMeta.JpegFile.prototype._exiftags = {
     40965 : ["Interoperability tag", "InteroperabilityIFDPointer"]
 };
 
+this.JpegMeta.JpegFile.prototype._mpotags = {
+    /* MP commmon tags */
+    0xB000: ["MP format version number", "MPFormatVersionNumber"],
+    0xB001: ["Number of images", "NumberOfImages"],
+    0xB002: ["MP entry", "MPEntry"],
+    0xB003: ["Individual image unique ID list", "IndividualImageUniqueIDList"],
+    0xB004: ["Total number of captured frames", "TotalNumberOfCapturedFrames"],
+    0xB101: ["MP individual image number", "MPIndividualImageNumber"],
+
+    /* MP multi-view image tags */
+    0xB201: ["Panorama scanning orientation", "PanoramaScanningOrientation"],
+    0xB202: ["Panorama horizontal overlap", "PanoramaHorizontalOverlap"],
+    0xB203: ["Panorama vertical overlap", "PanoramaVerticalOverlap"],
+    0xB204: ["Base viewport number", "BaseViewportNumber"],
+    0xB205: ["Convergence angle", "ConvergenceAngle"],
+    0xB206: ["Baseline length", "BaselineLength"],
+    0xB207: ["Divergence angle", "DivergenceAngle"],
+    0xB208: ["Horizontal axis distance", "HorizontalAxisDistance"],
+    0xB209: ["Vertical axis distance", "VerticalAxisDistance"],
+    0xB20A: ["Collimation axis distance", "CollimationAxisDistance"],
+    0xB20B: ["Yaw angle", "YawAngle"],
+    0xB20C: ["Pitch angle", "PitchAngle"],
+    0xB20D: ["Roll angle", "RollAngle"],
+
+    0x8001: ["Frame count", "FrameCount"],
+    0x8002: ["Data offsets", "DataOffsets"]
+};
+
 this.JpegMeta.JpegFile.prototype._gpstags = {
     /* A. Tags Relating to GPS */
     0 : ["GPS tag version", "GPSVersionID"],
@@ -592,7 +620,7 @@ this.JpegMeta.JpegFile.prototype._markers = {
     0xdf: ["EXP", null, "Expand reference component(s)"],
     0xe0: ["APP0", "_app0Handler", "Reserved for application segments"],
     0xe1: ["APP1", "_app1Handler"],
-    0xe2: ["APP2", null],
+    0xe2: ["APP2", "_app2Handler", "Reserved for MPO information"],
     0xe3: ["APP3", null],
     0xe4: ["APP4", null],
     0xe5: ["APP5", null],
@@ -755,6 +783,47 @@ this.JpegMeta.JpegFile.prototype._app1Handler = function _app1Handler(mark, pos)
 	/* Don't know about other idents */
     }
 };
+
+/* Handle app2 / MPO segments */
+this.JpegMeta.JpegFile.prototype._app2Handler = function _app2Handler(mark, pos) {
+    var mpoIdent = this._binary_data.slice(pos, pos + 4);
+    var exifIdent = this._binary_data.slice(pos, pos + 6);
+    if (mpoIdent == this._MPO_IDENT) {
+        this._mpoHandler(mark, pos + 4);
+    } else if (exifIdent == this._EXIF_IDENT) {
+        this._exifHandler(mark, pos + 6);
+    }else {
+    /* Don't know about other idents */
+    }
+};
+
+/* Handle MPO segments */
+JpegMeta.JpegFile.prototype._mpoHandler = function _mpoHandler(mark, pos) {
+    var endian;
+    var magic_field;
+    var ifd_offset;
+    var endian_field = this._binary_data.slice(pos, pos + 2);
+    var lookahead = this._binary_data.slice(pos - 8, pos + 80);
+
+    if (this.mpo !== undefined) {
+        throw Error("Multiple MPO segments found");
+    }
+
+    if (endian_field === "II") {
+        endian = "<";
+    } else if (endian_field === "MM") {
+        endian = ">";
+    } else {
+        throw new Error("Malformed TIFF meta-data. Unknown endianess: " + endian_field);
+    }
+    magic_field = JpegMeta.parseNum(endian, this._binary_data, pos + 2, 2);
+    if (magic_field !== 42) {
+        throw new Error("Malformed TIFF meta-data. Bad magic: " + magic_field);
+    }
+    ifd_offset = JpegMeta.parseNum(endian, this._binary_data, pos + 4, 4);
+    /* Parse 0th IFD */
+    this._parseIfd(endian, this._binary_data, pos, ifd_offset, this._mpotags, "mpo", "MPO");
+}
 
 /* Handle exif segments */
 JpegMeta.JpegFile.prototype._exifHandler = function _exifHandler(mark, pos) {

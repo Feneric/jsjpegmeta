@@ -27,7 +27,8 @@
     function loadFiles(files) {
 	var dataurl_reader = new FileReader();
 
-	function display(data, filename) {
+	function display(rawData, filename) {
+	    var data = atob(rawData.replace(/^.*?,/,''))
 	    var jpeg = new $j(data, filename);
 	    var groups = new Array;
 	    var props;
