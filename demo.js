@@ -28,7 +28,7 @@
 	var dataurl_reader = new FileReader();
 
 	function display(rawData, filename) {
-	    var data = atob(rawData.replace(/^.*?,/,''))
+	    var data = atob(rawData.replace(/^.*?,/,''));
 	    var jpeg = new $j(data, filename);
 	    var groups = new Array;
 	    var props;
@@ -75,7 +75,7 @@
 
 	dataurl_reader.onloadend = function() {
 	    $("img").src = this.result;
-            display(atob(this.result.replace(/^.*?,/,'')), files[0]);
+            display(this.result, files[0]);
 	}
 
 	$("status").innerHTML = "";

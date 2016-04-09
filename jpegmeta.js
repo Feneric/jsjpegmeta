@@ -304,6 +304,9 @@ this.JpegMeta.JpegFile.prototype._JFXX_IDENT = "JFXX\x00";
 /* EXIF idents */
 this.JpegMeta.JpegFile.prototype._EXIF_IDENT = "Exif\x00";
 
+/* MPO idents */
+this.JpegMeta.JpegFile.prototype._MPO_IDENT = "MPF\x00";
+
 /* TIFF types */
 this.JpegMeta.JpegFile.prototype._types = {
     /* The format is identifier : ["type name", type_size_in_bytes ] */
